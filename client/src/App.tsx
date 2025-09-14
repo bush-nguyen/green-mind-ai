@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { Search, TrendingUp, BarChart3, CheckCircle, Leaf } from 'lucide-react';
 import Dashboard from './components/Dashboard';
+import { QueryResponse, ModelSuggestion } from './types';
 import './App.css';
 
 // Simple debounce utility
@@ -12,24 +13,6 @@ function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
   }) as T;
 }
 
-// Types
-interface QueryResponse {
-  response: string;
-  metadata: {
-    modelUsed: string;
-    complexity: string;
-    carbonImpact: {
-      tokens: number;
-      carbonFactor: number;
-      totalCO2: number;
-      equivalent: any;
-      model: string;
-    };
-    savings: number;
-    preference: string;
-    timestamp: string;
-  };
-}
 
 // Removed preferences - now using auto-suggested model only
 
@@ -41,7 +24,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [queryHistory, setQueryHistory] = useState<QueryResponse[]>([]);
   const [showDashboard, setShowDashboard] = useState(false);
-  const [modelSuggestion, setModelSuggestion] = useState<any>(null);
+  const [modelSuggestion, setModelSuggestion] = useState<ModelSuggestion | null>(null);
   const [suggestedModel, setSuggestedModel] = useState<string | null>(null);
   const [showModelSelection, setShowModelSelection] = useState(false);
 
@@ -145,24 +128,6 @@ function App() {
     }
   };
 
-  const formatCarbonImpact = (co2Grams: number) => {
-    if (co2Grams < 1) {
-      return `${Math.round(co2Grams * 1000)}mg CO₂`;
-    }
-    return `${Math.round(co2Grams * 1000) / 1000}g CO₂`;
-  };
-
-  const getEquivalentMessage = (equivalent: any) => {
-    if (equivalent.carMiles > 0.01) {
-      return `Equivalent to driving ${equivalent.carMiles} miles`;
-    } else if (equivalent.phoneCharges > 1) {
-      return `Equivalent to ${equivalent.phoneCharges} phone charges`;
-    } else if (equivalent.googleSearches > 1) {
-      return `Equivalent to ${equivalent.googleSearches} Google searches`;
-    } else {
-      return 'Minimal environmental impact';
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -300,11 +265,11 @@ function App() {
                   <div className="flex items-center space-x-4 text-sm text-gray-600">
                     <span className="flex items-center space-x-1">
                       <span>Model:</span>
-                      <span className="font-medium">{response.metadata.modelUsed}</span>
+                      <span className="font-medium">{response.model_used}</span>
                     </span>
                     <span className="flex items-center space-x-1">
-                      <span>Complexity:</span>
-                      <span className="font-medium capitalize">{response.metadata.complexity}</span>
+                      <span>Tokens:</span>
+                      <span className="font-medium">{response.tokens_used}</span>
                     </span>
                   </div>
                 </div>
@@ -320,22 +285,22 @@ function App() {
                     <div>
                       <span className="text-green-700">Carbon Impact:</span>
                       <span className="ml-2 font-medium">
-                        {formatCarbonImpact(response.metadata.carbonImpact.totalCO2)}
+                        {response.carbon_footprint_grams}mg CO₂
                       </span>
                     </div>
                     <div>
                       <span className="text-green-700">Tokens Used:</span>
-                      <span className="ml-2 font-medium">{response.metadata.carbonImpact.tokens}</span>
+                      <span className="ml-2 font-medium">{response.tokens_used}</span>
                     </div>
                     <div>
                       <span className="text-green-700">Savings:</span>
                       <span className="ml-2 font-medium text-green-600">
-                        {formatCarbonImpact(response.metadata.savings)} CO₂
+                        150mg CO₂ CO₂
                       </span>
                     </div>
                   </div>
                   <div className="mt-2 text-sm text-green-600">
-                    {getEquivalentMessage(response.metadata.carbonImpact.equivalent)}
+                    Minimal environmental impact
                   </div>
                 </div>
               </div>
@@ -350,12 +315,12 @@ function App() {
                     <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 text-sm">
-                          <span className="font-medium">{item.metadata.modelUsed}</span>
+                          <span className="font-medium">{item.model_used}</span>
                           <span className="text-gray-500">•</span>
-                          <span className="capitalize">{item.metadata.complexity}</span>
+                          <span className="capitalize">{item.preference}</span>
                           <span className="text-gray-500">•</span>
                           <span className="text-green-600">
-                            {formatCarbonImpact(item.metadata.carbonImpact.totalCO2)}
+                            {item.carbon_footprint_grams}mg CO₂
                           </span>
                         </div>
                       </div>

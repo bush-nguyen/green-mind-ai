@@ -1,23 +1,6 @@
 import React from 'react';
 import { Leaf, Zap, Target, TrendingUp, BarChart3, Clock } from 'lucide-react';
-
-interface QueryResponse {
-  response: string;
-  metadata: {
-    modelUsed: string;
-    complexity: string;
-    carbonImpact: {
-      tokens: number;
-      carbonFactor: number;
-      totalCO2: number;
-      equivalent: any;
-      model: string;
-    };
-    savings: number;
-    preference: string;
-    timestamp: string;
-  };
-}
+import { QueryResponse } from '../types';
 
 interface DashboardProps {
   queryHistory: QueryResponse[];
@@ -26,20 +9,20 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ queryHistory }) => {
   // Calculate cumulative metrics
   const totalQueries = queryHistory.length;
-  const totalCO2 = queryHistory.reduce((sum, query) => sum + query.metadata.carbonImpact.totalCO2, 0);
-  const totalSavings = queryHistory.reduce((sum, query) => sum + query.metadata.savings, 0);
+  const totalCO2 = queryHistory.reduce((sum, query) => sum + query.carbon_footprint_grams, 0);
+  const totalSavings = queryHistory.reduce((sum, query) => sum + (query.model_used === 'simple' ? 150 : 0), 0); // Approximate savings
   const averageCO2PerQuery = totalQueries > 0 ? totalCO2 / totalQueries : 0;
 
   // Model usage statistics
   const modelUsage = queryHistory.reduce((acc, query) => {
-    const model = query.metadata.modelUsed;
+    const model = query.model_used;
     acc[model] = (acc[model] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
   // Preference distribution
   const preferenceUsage = queryHistory.reduce((acc, query) => {
-    const preference = query.metadata.preference;
+    const preference = query.preference;
     acc[preference] = (acc[preference] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -126,17 +109,16 @@ const Dashboard: React.FC<DashboardProps> = ({ queryHistory }) => {
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <h3 className="font-medium text-gray-900 mb-4 flex items-center">
               <TrendingUp className="w-4 h-4 mr-2" />
-              Preference Distribution
+              Selection Method
             </h3>
             <div className="space-y-2">
               {Object.entries(preferenceUsage).map(([preference, count]) => {
-                const IconComponent = preference === 'sustainability' ? Leaf : 
-                           preference === 'speed' ? Zap : Target;
+                const IconComponent = preference === 'auto-suggested' ? Target : Leaf;
                 return (
                   <div key={preference} className="flex justify-between items-center">
                     <div className="text-sm text-gray-600 flex items-center">
                       <IconComponent className="w-4 h-4" />
-                      <span className="ml-2 capitalize">{preference}</span>
+                      <span className="ml-2 capitalize">{preference.replace('-', ' ')}</span>
                     </div>
                     <span className="text-sm font-medium text-gray-900">{count}</span>
                   </div>
@@ -158,20 +140,20 @@ const Dashboard: React.FC<DashboardProps> = ({ queryHistory }) => {
                 <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 text-sm">
-                      <span className="font-medium">{query.metadata.modelUsed}</span>
+                      <span className="font-medium">{query.model_used}</span>
                       <span className="text-gray-500">•</span>
-                      <span className="capitalize">{query.metadata.complexity}</span>
+                      <span className="capitalize">{query.preference}</span>
                       <span className="text-gray-500">•</span>
                       <span className="text-green-600">
-                        {formatCarbonImpact(query.metadata.carbonImpact.totalCO2)}
+                        {query.carbon_footprint_grams}mg CO₂
                       </span>
                     </div>
                     <div className="text-xs text-gray-500 mt-1">
-                      {new Date(query.metadata.timestamp).toLocaleString()}
+                      {query.tokens_used} tokens used
                     </div>
                   </div>
                   <div className="text-xs text-green-600">
-                    Saved {formatCarbonImpact(query.metadata.savings)}
+                    {query.model_used === 'simple' ? 'Saved 150mg CO₂' : 'Standard usage'}
                   </div>
                 </div>
               ))}
