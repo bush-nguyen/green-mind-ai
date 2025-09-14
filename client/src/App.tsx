@@ -139,12 +139,12 @@ function App() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {!showDashboard ? (
-          <div className="space-y-8">
+          <div className="center-content">
             {/* Search Section */}
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Ask a Question</h2>
+            <div className="bg-white rounded-lg shadow-sm border p-6 w-full max-w-4xl">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4 text-center">Ask a Question</h2>
               
-              <form onSubmit={handleSubmit} className="space-y-4" style={{ maxWidth: '800px' }}>
+              <form onSubmit={handleSubmit} className="center-form">
                 <div className="search-container">
                   <input
                     type="text"
@@ -165,16 +165,16 @@ function App() {
                 </div>
 
                 {/* Carbon Slider */}
-                <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700">
+                <div className="space-y-3 w-full">
+                  <label className="block text-sm font-medium text-gray-700 text-center">
                     Choose your priority:
                   </label>
-                  <div className="flex space-x-4">
+                  <div className="preference-container">
                     {preferences.map((pref) => (
                       <button
                         key={pref.id}
                         onClick={() => setSelectedPreference(pref.id)}
-                        className={`flex items-center space-x-2 px-4 py-3 rounded-lg border-2 transition-all ${
+                        className={`flex items-center space-x-2 px-4 py-3 rounded-lg border-2 transition-all min-w-[200px] ${
                           selectedPreference === pref.id
                             ? 'border-green-500 bg-green-50 text-green-700'
                             : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
@@ -209,7 +209,7 @@ function App() {
 
             {/* Response Section */}
             {response && (
-              <div className="bg-white rounded-lg shadow-sm border p-6">
+              <div className="bg-white rounded-lg shadow-sm border p-6 w-full max-w-4xl mt-8">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-900">Response</h3>
                   <div className="flex items-center space-x-4 text-sm text-gray-600">
@@ -258,7 +258,7 @@ function App() {
 
             {/* Query History */}
             {queryHistory.length > 0 && (
-              <div className="bg-white rounded-lg shadow-sm border p-6">
+              <div className="bg-white rounded-lg shadow-sm border p-6 w-full max-w-4xl mt-8">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Queries</h3>
                 <div className="space-y-3">
                   {queryHistory.slice(0, 5).map((item, index) => (
