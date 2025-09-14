@@ -1,0 +1,26 @@
+{
+  "name": "eco-llm-switcher",
+  "version": "1.0.0",
+  "description": "Middleware application that reduces carbon footprint of AI usage by dynamically selecting the most efficient LLM",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm start",
+    "build": "cd client && npm run build",
+    "start": "cd server && npm start",
+    "demo": "node demo.js",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up",
+    "docker:down": "docker-compose down"
+  },
+  "keywords": ["AI", "sustainability", "carbon-footprint", "LLM", "middleware"],
+  "author": "Eco-LLM Team",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.2"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
