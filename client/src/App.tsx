@@ -1,7 +1,16 @@
-import React, { useState } from 'react';
-import { Search, Leaf, Zap, Target, TrendingUp, BarChart3 } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { Search, TrendingUp, BarChart3, CheckCircle, Leaf } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import './App.css';
+
+// Simple debounce utility
+function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
+  let timeout: NodeJS.Timeout;
+  return ((...args: any[]) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  }) as T;
+}
 
 // Types
 interface QueryResponse {
@@ -22,44 +31,64 @@ interface QueryResponse {
   };
 }
 
-interface Preference {
-  id: 'sustainability' | 'speed' | 'accuracy';
-  name: string;
-  icon: React.ReactNode;
-  description: string;
-}
-
-const preferences: Preference[] = [
-  {
-    id: 'sustainability',
-    name: 'Sustainability',
-    icon: <Leaf className="w-6 h-6" />,
-    description: 'Prioritize lowest carbon impact'
-  },
-  {
-    id: 'speed',
-    name: 'Speed',
-    icon: <Zap className="w-6 h-6" />,
-    description: 'Optimize for fastest response'
-  },
-  {
-    id: 'accuracy',
-    name: 'Accuracy',
-    icon: <Target className="w-6 h-6" />,
-    description: 'Maximize output quality'
-  }
-];
+// Removed preferences - now using auto-suggested model only
 
 function App() {
   const [query, setQuery] = useState('');
-  const [selectedPreference, setSelectedPreference] = useState<'sustainability' | 'speed' | 'accuracy'>('sustainability');
+  // Removed preference selection - now using auto-suggested model only
   const [response, setResponse] = useState<QueryResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [queryHistory, setQueryHistory] = useState<QueryResponse[]>([]);
   const [showDashboard, setShowDashboard] = useState(false);
+  const [modelSuggestion, setModelSuggestion] = useState<any>(null);
+  const [suggestedModel, setSuggestedModel] = useState<string | null>(null);
+  const [showModelSelection, setShowModelSelection] = useState(false);
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+
+  // Get model suggestion as user types
+  const getModelSuggestion = useCallback(async (queryText: string) => {
+    if (queryText.trim().length < 10) {
+      setModelSuggestion(null);
+      setSuggestedModel(null);
+      setShowModelSelection(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/suggest-model`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: queryText }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setModelSuggestion(data.suggestion);
+        setSuggestedModel(data.suggestion.suggested_model);
+        setShowModelSelection(true);
+      }
+    } catch (error) {
+      console.error('Error getting model suggestion:', error);
+    }
+  }, [API_BASE_URL]);
+
+  // Debounced model suggestion
+  const debouncedGetSuggestion = useCallback(
+    debounce((queryText: string) => {
+      getModelSuggestion(queryText);
+    }, 1000),
+    [getModelSuggestion]
+  );
+
+  const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setQuery(value);
+    debouncedGetSuggestion(value);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,6 +98,27 @@ function App() {
     setError(null);
 
     try {
+      // If no suggested model, get one first
+      let modelToUse = suggestedModel;
+      if (!modelToUse) {
+        try {
+          const suggestionRes = await fetch(`${API_BASE_URL}/api/suggest-model`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ query: query.trim() }),
+          });
+          
+          if (suggestionRes.ok) {
+            const suggestionData = await suggestionRes.json();
+            modelToUse = suggestionData.suggestion.suggested_model;
+          }
+        } catch (suggestionError) {
+          console.error('Error getting suggestion:', suggestionError);
+        }
+      }
+
       const res = await fetch(`${API_BASE_URL}/api/query`, {
         method: 'POST',
         headers: {
@@ -76,7 +126,7 @@ function App() {
         },
         body: JSON.stringify({
           query: query.trim(),
-          preference: selectedPreference,
+          suggested_model: modelToUse
         }),
       });
 
@@ -88,6 +138,7 @@ function App() {
       setResponse(data);
       setQueryHistory(prev => [data, ...prev.slice(0, 9)]); // Keep last 10 queries
     } catch (err) {
+      console.error('Error:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
@@ -149,7 +200,7 @@ function App() {
                   <input
                     type="text"
                     value={query}
-                    onChange={(e) => setQuery(e.target.value)}
+                    onChange={handleQueryChange}
                     placeholder="Enter a prompt or question..."
                     className="search-input px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                     disabled={loading}
@@ -164,31 +215,65 @@ function App() {
                   </button>
                 </div>
 
-                {/* Carbon Slider */}
-                <div className="space-y-3 w-full">
-                  <label className="block text-sm font-medium text-gray-700 text-center">
-                    Choose your priority:
-                  </label>
-                  <div className="preference-container">
-                    {preferences.map((pref) => (
-                      <button
-                        key={pref.id}
-                        onClick={() => setSelectedPreference(pref.id)}
-                        className={`flex items-center space-x-2 px-4 py-3 rounded-lg border-2 transition-all min-w-[200px] ${
-                          selectedPreference === pref.id
-                            ? 'border-green-500 bg-green-50 text-green-700'
-                            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                        }`}
-                      >
-                        {pref.icon}
-                        <div className="text-left">
-                          <div className="font-medium">{pref.name}</div>
-                          <div className="text-xs opacity-75">{pref.description}</div>
+                {/* Model Suggestion */}
+                {showModelSelection && modelSuggestion && (
+                  <div className="w-full max-w-2xl mx-auto mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg model-suggestion">
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <h4 className="text-sm font-medium text-blue-900 mb-1">
+                          🧠 Smart Model Selection
+                        </h4>
+                        <p className="text-sm text-blue-800 mb-2">
+                          {modelSuggestion.reason}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-xs font-medium text-blue-700">
+                              Suggested: {modelSuggestion.suggested_model === 'simple' ? 'Simple Model' : 'Claude Haiku'}
+                            </span>
+                            {modelSuggestion.carbon_savings !== '0%' && (
+                              <span className="text-xs text-green-600 font-medium">
+                                💚 {modelSuggestion.carbon_savings} less CO₂
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              type="button"
+                              onClick={() => setShowModelSelection(false)}
+                              className="text-xs text-blue-600 hover:text-blue-800 underline suggestion-button"
+                            >
+                              Use this model
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setShowModelSelection(false)}
+                              className="text-xs text-gray-500 hover:text-gray-700 suggestion-button"
+                            >
+                              Choose manually
+                            </button>
+                          </div>
                         </div>
-                      </button>
-                    ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* Auto-suggested model info */}
+                {modelSuggestion && (
+                  <div className="w-full max-w-2xl mx-auto mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center justify-center space-x-2 text-sm text-green-800">
+                      <CheckCircle className="w-4 h-4" />
+                      <span>
+                        Using {modelSuggestion.suggested_model === 'simple' ? 'Simple Model' : 'Claude Haiku'} 
+                        {modelSuggestion.carbon_savings !== '0%' && (
+                          <span className="ml-1 font-medium">({modelSuggestion.carbon_savings} less CO₂)</span>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </form>
 
               {loading && (
@@ -225,7 +310,7 @@ function App() {
                 </div>
 
                 <div className="prose max-w-none mb-6">
-                  <p className="text-gray-700 leading-relaxed">{response.response}</p>
+                  <div className="text-gray-700 leading-relaxed whitespace-pre-line">{response.response}</div>
                 </div>
 
                 {/* Carbon Impact Transparency */}
