@@ -59,7 +59,7 @@ function App() {
   const [queryHistory, setQueryHistory] = useState<QueryResponse[]>([]);
   const [showDashboard, setShowDashboard] = useState(false);
 
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

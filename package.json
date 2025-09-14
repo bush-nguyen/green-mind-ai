@@ -4,7 +4,8 @@
   "description": "Middleware application that reduces carbon footprint of AI usage by dynamically selecting the most efficient LLM",
   "main": "server/index.js",
   "scripts": {
-    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "dev": "concurrently \"npm run python-server\" \"npm run client\"",
+    "python-server": "cd python_backend && python simple_app.py",
     "server": "cd server && npm run dev",
     "client": "cd client && npm start",
     "build": "cd client && npm run build",
