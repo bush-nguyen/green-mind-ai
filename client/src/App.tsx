@@ -121,7 +121,7 @@ function App() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
               <Leaf className="w-8 h-8 text-green-600" />
-              <h1 className="text-2xl font-bold text-gray-900">Eco-LLM Switcher</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Green Mind AI</h1>
             </div>
             <button
               onClick={() => setShowDashboard(!showDashboard)}
